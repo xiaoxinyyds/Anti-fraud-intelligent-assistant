@@ -142,7 +142,7 @@ def analyze_text_for_fraud(text: str) -> Dict:
         与 analyze_image 相同格式的字典
     """
     system_prompt = """你是一个反诈专家。分析以下文本是否涉及诈骗，严格按照JSON格式输出。
-诈骗类型可选：["刷单诈骗","冒充客服退款诈骗" "杀猪盘", "冒充公检法", "虚假贷款", "投资理财诈骗", "游戏交易诈骗", "追星诈骗", "养生保健品诈骗", "AI换脸诈骗", "虚假中奖诈骗", "无诈骗"]
+诈骗类型可选：["刷单诈骗","冒充客服退款诈骗","杀猪盘", "冒充公检法", "虚假贷款", "投资理财诈骗", "游戏交易诈骗", "追星诈骗", "养生保健品诈骗", "AI换脸诈骗", "虚假中奖诈骗", "无诈骗"]
 
 输出格式：
 {
@@ -209,6 +209,18 @@ def analyze_audio(audio_path: str, retry: int = 2) -> Dict:
     # 2. 调用文本分析
     return analyze_text_for_fraud(text)
 
+# ================== 纯文本分析入口（补全致命漏洞！） ==================
+def analyze_text(text: str) -> Dict:
+    """
+    纯文本反诈分析统一入口
+    供后端文本接口调用，完全复用大模型分析逻辑
+    Args:
+        text: 前端输入的纯文本内容
+    Returns:
+        统一格式的分析结果字典
+    """
+    return analyze_text_for_fraud(text)
+
 # ================== 统一入口（供后端调用） ==================
 
 def multimodal_analyze(file_path: str, file_type: str) -> Dict:
@@ -262,3 +274,9 @@ if __name__ == "__main__":
         print(json.dumps(result, indent=2, ensure_ascii=False))
     else:
         print("请准备一个测试音频文件，并修改 audio_path 变量")
+    
+    # 新增：测试纯文本分析
+    test_text = "我们是人性化执法,考虑到你这个年龄,所以没有传唤你到海南这边来"
+    text_result = analyze_text(test_text)
+    print("\n纯文本测试结果：")
+    print(json.dumps(text_result, indent=2, ensure_ascii=False))
