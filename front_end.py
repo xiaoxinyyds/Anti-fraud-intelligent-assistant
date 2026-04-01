@@ -91,36 +91,58 @@ def register_user(username, email, password, role, gender, risk_sensitivity, gua
             "role": ROLE_MAP.get(role, "youth"),
             "gender": GENDER_MAP.get(gender, gender),
             "risk_sensitivity": RISK_MAP.get(risk_sensitivity, "medium"),
-            "guardian_name": guardian_name,
-            "guardian_phone": guardian_phone,
-            "guardian_email": guardian_email
+            "guardian_name": guardian_name if guardian_name else None,
+            "guardian_phone": guardian_phone if guardian_phone else None,
+            "guardian_email": guardian_email if guardian_email else None
         }
-        response = requests.post(url, json=data)
+        headers = {
+            "Content-Type": "application/json"
+        }
+        response = requests.post(url, json=data, headers=headers)
         if response.status_code in (200, 201):
             return response.json()
-        st.error(f"注册失败：{response.status_code} - {response.text}")
+        else:
+            try:
+                error_detail = response.json().get("detail", response.text)
+                st.error(f"注册失败：{response.status_code} - {error_detail}")
+            except:
+                st.error(f"注册失败：{response.status_code} - {response.text}")
         return None
     except Exception as e:
-        st.error(f"注册失败: {e}")
+        st.error(f"注册请求异常: {e}")
         return None
 
 def login_user(username, password):
     """用户登录"""
     try:
         url = f"{BACKEND_URL}{API_PREFIX}/auth/login"
+        # OAuth2PasswordRequestForm 需要表单格式数据
         data = {
             "username": username,
-            "password": password
+            "password": password,
+            "scope": ""
         }
-        response = requests.post(url, data=data)
+        headers = {
+            "Content-Type": "application/x-www-form-urlencoded"
+        }
+        response = requests.post(url, data=data, headers=headers)
+        
         if response.status_code == 200:
             result = response.json()
             st.session_state["access_token"] = result.get("access_token")
-            st.session_state["user_info"] = result.get("user")
+            # 获取用户信息
+            st.session_state["user_info"] = {"username": username}
             return True
-        return False
+        else:
+            # 显示后端返回的错误信息
+            try:
+                error_detail = response.json().get("detail", "未知错误")
+                st.error(f"登录失败: {error_detail}")
+            except:
+                st.error(f"登录失败: HTTP {response.status_code}")
+            return False
     except Exception as e:
-        st.error(f"登录失败: {e}")
+        st.error(f"登录请求异常: {e}")
         return False
 
 # 侧边栏：用户认证与个性化设置
@@ -172,6 +194,28 @@ with st.sidebar:
             reg_password = st.text_input("密码", type="password", key="reg_password")
             reg_confirm_password = st.text_input("确认密码", type="password", key="reg_confirm_password")
             
+            # 注册时也需要角色等信息，添加到注册表单中
+            st.markdown("---")
+            st.caption("基本信息（必填）")
+            reg_role = st.selectbox(
+                "选择您的身份",
+                ["儿童/青少年", "青年（学生/职场新人）", "中年（职场人士）", "老年人", "财务/高管（高风险）"],
+                key="reg_role"
+            )
+            reg_gender = st.radio("性别", ["男", "女"], key="reg_gender")
+            reg_risk_sensitivity = st.select_slider(
+                "预警灵敏度",
+                options=["低", "中", "高"],
+                value="中",
+                key="reg_risk_sensitivity"
+            )
+            
+            st.markdown("---")
+            st.caption("监护人信息（可选）")
+            reg_guardian_name = st.text_input("监护人姓名", placeholder="例如：张老师", key="reg_guardian_name")
+            reg_guardian_phone = st.text_input("监护人电话", placeholder="用于紧急通知", key="reg_guardian_phone")
+            reg_guardian_email = st.text_input("监护人邮箱", placeholder="用于报告推送", key="reg_guardian_email")
+            
             if st.button("📝 注册"):
                 if not reg_username or not reg_email or not reg_password:
                     st.warning("请填写所有必填字段")
@@ -182,12 +226,12 @@ with st.sidebar:
                         username=reg_username,
                         email=reg_email,
                         password=reg_password,
-                        role=role,
-                        gender=gender,
-                        risk_sensitivity=risk_sensitivity,
-                        guardian_name=guardian_name,
-                        guardian_phone=guardian_phone,
-                        guardian_email=guardian_email
+                        role=reg_role,
+                        gender=reg_gender,
+                        risk_sensitivity=reg_risk_sensitivity,
+                        guardian_name=reg_guardian_name,
+                        guardian_phone=reg_guardian_phone,
+                        guardian_email=reg_guardian_email
                     )
                     if result:
                         st.success("注册成功！请登录")

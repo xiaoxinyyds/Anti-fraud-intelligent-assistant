@@ -3,12 +3,11 @@ from typing import Optional
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from fastapi import HTTPException, status
-from passlib.context import CryptContext
 
 from .config import settings
 from . import schemas
 
-# 密码哈希上下文
+# 密码哈希上下文 - 使用 pbkdf2_sha256 算法
 pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 
 

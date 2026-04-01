@@ -5,6 +5,9 @@ import time
 from openai import OpenAI
 from typing import Dict, Optional
 
+# 设置 HuggingFace 国内镜像
+os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
+
 # 导入 Whisper（需要已安装 openai-whisper）
 import whisper
 
@@ -19,10 +22,54 @@ IMAGE_MODEL = "qwen2.5-vl-32b-instruct"
 # 文本分析使用的纯文本模型
 TEXT_MODEL = "qwen-max"
 
+# ---------- Whisper 模型下载配置 ----------
+# 国内镜像地址
+WHISPER_MODEL_URLS = {
+    "tiny": "https://hf-mirror.com/openai/whisper-tiny/resolve/main/tiny.pt",
+    "base": "https://hf-mirror.com/openai/whisper-base/resolve/main/base.pt",
+    "small": "https://hf-mirror.com/openai/whisper-small/resolve/main/small.pt",
+    "medium": "https://hf-mirror.com/openai/whisper-medium/resolve/main/medium.pt",
+    "large": "https://hf-mirror.com/openai/whisper-large-v3/resolve/main/large-v3.pt",
+}
+
+def _download_whisper_model(model_name: str = "base", download_root: str = None) -> str:
+    """下载 Whisper 模型使用国内镜像"""
+    import urllib.request
+    
+    if download_root is None:
+        download_root = os.path.join(os.path.expanduser("~"), ".cache", "whisper")
+    
+    os.makedirs(download_root, exist_ok=True)
+    
+    model_url = WHISPER_MODEL_URLS.get(model_name)
+    if not model_url:
+        model_url = f"https://openaipublic.azureedge.net/main/whisper/models/{model_name}.pt"
+    
+    model_path = os.path.join(download_root, f"{model_name}.pt")
+    
+    if os.path.exists(model_path):
+        return model_path
+    
+    print(f"正在从国内镜像下载 Whisper {model_name} 模型...")
+    try:
+        urllib.request.urlretrieve(model_url, model_path)
+        print(f"模型下载完成: {model_path}")
+        return model_path
+    except Exception as e:
+        print(f"下载失败: {e}")
+        return None
+
+def load_whisper_model(model_name: str = "base"):
+    """加载 Whisper 模型"""
+    model_path = _download_whisper_model(model_name)
+    if model_path and os.path.exists(model_path):
+        return whisper.load_model(model_path, download_root=None)
+    else:
+        print("使用默认方式加载模型...")
+        return whisper.load_model(model_name)
+
 # ---------- 初始化 Whisper 音频转文字模型 ----------
-# 可选模型: "tiny", "base", "small", "medium", "large"
-# 平衡速度和准确率推荐 "base" 或 "small"
-WHISPER_MODEL = whisper.load_model("base")
+WHISPER_MODEL = load_whisper_model("base")
 
 # ================== 图片分析部分（已有） ==================
 
