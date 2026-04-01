@@ -43,6 +43,12 @@ class Settings(BaseSettings):
     # 监护人通知配置
     ENABLE_GUARDIAN_NOTIFICATION: bool = True
     
+    # LLM API 配置
+    LLM_API_KEY: str = os.getenv("LLM_API_KEY", "")
+    LLM_MODEL: str = os.getenv("LLM_MODEL", "qwen-turbo")
+    LLM_API_TIMEOUT: int = 30
+    LLM_CACHE_ENABLED: bool = True
+    
     class Config:
         env_file = ".env"
         case_sensitive = True
